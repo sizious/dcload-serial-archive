@@ -8,7 +8,7 @@ INCLUDE	= -I$(LZOPATH) -I$(BFDINCLUDE)
 
 DCTOOL	= dc-tool$(EXECUTABLEEXTENSION)
 
-OBJECTS	= dc-tool.o minilzo.o syscalls.o
+OBJECTS	= dc-tool.o minilzo.o syscalls.o unlink.o
 LZOFILES = $(LZOPATH)/minilzo.c $(LZOPATH)/minilzo.h $(LZOPATH)/lzoconf.h
 
 .c.o:
