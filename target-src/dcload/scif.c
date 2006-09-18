@@ -35,23 +35,27 @@ void scif_flush()
 
 void scif_init(int bps)
 {
-    int i;
+    /* Modified to allow external baudrate (bps == 0) */
 
-    *SCSCR2 = 0x0;		/* clear TE and RE bits in SCSCR2 */
+    int i;
+ 
+    *SCSCR2 = bps ? 0x0 : 0x02;	/* clear TE and RE bits / if (bps == 0) CKE1 on (bit 1) */
     *SCFCR2 = 0x6;		/* set TFRST and RFRST bits in SCFCR2 */
     *SCSMR2 = 0x0;		/* set data transfer format 8n1 */
-    *SCBRR2 = (50 * 1000000) / (32 * bps) - 1;	/* set bit rate */
+   
 
+    if (bps) *SCBRR2 = (50 * 1000000) / (32 * bps) - 1;	/* if (bps != 0) set baudrate */
+ 
     for (i = 0; i < 100000; i++);	/* delay at least 1 bit interval */
-
+ 
     *SCFCR2 = 12;
     *SCFCR2 = 0x8;		/* set MCE in SCFCR2 */
     *SCSPTR2 = 0;
     *SCFSR2 = 0x60;
     *SCLSR2 = 0;
-    *SCSCR2 = 0x30;		/* set TE and RE bits in SCSCR2 */
-
-    for (i = 0; i < 100000; i++);
+    *SCSCR2 = bps ? 0x30 : 0x32;	/* set TE and RE bits / if (bps == 0) CKE1 on (bit 1) */
+ 
+    for (i = 0; i < 100000; i++); 
 }
 
 unsigned char scif_getchar(void)

@@ -604,6 +604,9 @@ int speedhack = 0;
  * N=13 (alternate, -3.1% error) for 115200
  */
 
+/* use_extclk controls whether the DC's serial port will use an external clock */
+int use_extclk = 0;
+
 int change_speed(char *device_name, unsigned int speed)
 {
     unsigned char c;
@@ -614,6 +617,8 @@ int change_speed(char *device_name, unsigned int speed)
     blread(&c, 1);
     if (speedhack && (speed == 115200))
 	send_uint(111600); /* get dcload to pick N=13 rather than N=12 */
+    else if (use_extclk)
+	send_uint(0);
     else
 	send_uint(speed);
     printf("Changing speed to %d bps... ", speed);
@@ -660,6 +665,7 @@ void usage(void)
     printf("-t <device>   Use <device> to communicate with dc (default: %s)\n", SERIALDEVICE);
     printf("-b <baudrate> Use <baudrate> (default: %d)\n", BAUD_RATE);
     printf("-e            Try alternate 115200 (must also use -b 115200)\n");
+    printf("-E            Use an external clock for the DC's serial port\n");
     printf("-n            Do not attach console and fileserver\n");
     printf("-p            Use dumb terminal rather than console/fileserver\n");
     printf("-q            Do not clear screen before download\n");
@@ -699,20 +705,20 @@ unsigned int upload(unsigned char *filename, unsigned int address)
 		if ((section->flags & SEC_HAS_CONTENTS) && (section->flags & SEC_LOAD)) {
 		    printf("Section %s, ",section->name);
 		    printf("lma 0x%x, ",section->lma);
-		    printf("size %d\n",section->size);
-		    if (section->size) {
-			size += section->size;
-			inbuf = malloc(section->size);
-			bfd_get_section_contents(somebfd, section, inbuf, 0, section->size);
+		    printf("size %d\n",section->_raw_size);
+		    if (section->_raw_size) {
+			size += section->_raw_size;
+			inbuf = malloc(section->_raw_size);
+			bfd_get_section_contents(somebfd, section, inbuf, 0, section->_raw_size);
 
 			c = 'B';
 			serial_write(&c, 1);
 			blread(&c, 1);
 			
 			send_uint(section->lma);
-			send_uint(section->size);
+			send_uint(section->_raw_size);
 			
-			send_data(inbuf, section->size, 1);
+			send_data(inbuf, section->_raw_size, 1);
 			
 			free(inbuf);
 		    }
@@ -970,7 +976,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
 	usage();
 
-    someopt = getopt(argc, argv, "x:u:d:a:s:t:b:c:i:npqheg");
+    someopt = getopt(argc, argv, "x:u:d:a:s:t:b:c:i:npqheEg");
     while (someopt > 0) {
 	switch (someopt) {
 	case 'x':
@@ -1037,6 +1043,9 @@ int main(int argc, char *argv[])
 	    break;
 	case 'e':
 	    speedhack = 1;
+	    break;
+	case 'E':
+	    use_extclk = 1;
 	    break;
 	case 'g':
 	    printf("Starting a GDB server on port 2159\n");
