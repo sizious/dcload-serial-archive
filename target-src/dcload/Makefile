@@ -27,7 +27,7 @@ dcload.lzo: dcload.bin
 	$(LZO) $< $@	
 
 dcload.bin: dcload
-	$(OBJCOPY) -O binary $< $@
+	$(OBJCOPY) -R .stack -O binary $< $@
 
 dcload: $(DCLOBJECTS)
 	$(CC) $(CFLAGS) -Wl,-Tdcload.x -nostartfiles -nostdlib $^ -o $@ -lgcc
