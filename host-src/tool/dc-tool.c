@@ -25,8 +25,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef _WIN32
 #include <string.h>
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <termios.h>
@@ -337,7 +337,7 @@ void recv_data(void *data, unsigned int total, unsigned int verbose)
 	    ok = 'G';
 	    serial_write(&ok, 1);
 	    total -= size;
-	    (unsigned char *) data += size;
+	    data += size;
 	    break;
 	case 'C':		// compressed
 	    if (verbose) {
@@ -351,7 +351,7 @@ void recv_data(void *data, unsigned int total, unsigned int verbose)
 		ok = 'G';
 		serial_write(&ok, 1);
 		total -= newsize;
-		(unsigned char *) data += newsize;
+		data += newsize;
 	    } else {
 		ok = 'B';
 		serial_write(&ok, 1);
@@ -705,20 +705,20 @@ unsigned int upload(unsigned char *filename, unsigned int address)
 		if ((section->flags & SEC_HAS_CONTENTS) && (section->flags & SEC_LOAD)) {
 		    printf("Section %s, ",section->name);
 		    printf("lma 0x%x, ",section->lma);
-		    printf("size %d\n",section->_raw_size);
-		    if (section->_raw_size) {
-			size += section->_raw_size;
-			inbuf = malloc(section->_raw_size);
-			bfd_get_section_contents(somebfd, section, inbuf, 0, section->_raw_size);
+		    printf("size %d\n",bfd_section_size(somebfd, section));
+		    if (bfd_section_size(somebfd, section)) {
+			size += bfd_section_size(somebfd, section);
+			inbuf = malloc(bfd_section_size(somebfd, section));
+			bfd_get_section_contents(somebfd, section, inbuf, 0, bfd_section_size(somebfd, section));
 
 			c = 'B';
 			serial_write(&c, 1);
 			blread(&c, 1);
 			
 			send_uint(section->lma);
-			send_uint(section->_raw_size);
+			send_uint(bfd_section_size(somebfd, section));
 			
-			send_data(inbuf, section->_raw_size, 1);
+			send_data(inbuf, bfd_section_size(somebfd, section), 1);
 			
 			free(inbuf);
 		    }

@@ -24,6 +24,7 @@ minilzo.o: $(LZOFILES)
 
 .PHONY : install
 install: $(DCTOOL)
+	-mkdir $(TOOLINSTALLDIR)
 	cp $(DCTOOL) $(TOOLINSTALLDIR)
 
 .PHONY : clean
