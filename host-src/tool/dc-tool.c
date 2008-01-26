@@ -34,7 +34,11 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <utime.h>
+#ifdef __MINGW32__
+#include <winsock.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <sys/socket.h>
 #include "minilzo.h"
 #include "syscalls.h"
@@ -669,7 +673,9 @@ void usage(void)
     printf("-n            Do not attach console and fileserver\n");
     printf("-p            Use dumb terminal rather than console/fileserver\n");
     printf("-q            Do not clear screen before download\n");
+#ifndef __MINGW32__
     printf("-c <path>     Chroot to <path> (must be super-user)\n");
+#endif
     printf("-i <isofile>  Enable cdfs redirection using iso image <isofile>\n");
     printf("-g            Start a GDB server\n");
     printf("-h            Usage information (you\'re looking at it)\n\n");
@@ -850,10 +856,11 @@ void do_console(unsigned char *path, unsigned char *isofile)
 	    perror(isofile);
     }
 	
+#ifndef __MINGW32__
     if (path)
 	if (chroot(path))
 	    perror(path);
-
+#endif
 
     while (1) {
 	fflush(stdout);
@@ -976,7 +983,11 @@ int main(int argc, char *argv[])
     if (argc < 2)
 	usage();
 
+#ifdef __MINGW32__
+    someopt = getopt(argc, argv, "x:u:d:a:s:t:b:i:npqheEg");
+#else
     someopt = getopt(argc, argv, "x:u:d:a:s:t:b:c:i:npqheEg");
+#endif
     while (someopt > 0) {
 	switch (someopt) {
 	case 'x':
@@ -1006,10 +1017,12 @@ int main(int argc, char *argv[])
 	    filename = malloc(strlen(optarg) + 1);
 	    strcpy(filename, optarg);
 	    break;
+#ifndef __MINGW32__
 	case 'c':
 	    path = malloc(strlen(optarg) + 1);
 	    strcpy(path, optarg);
 	    break;
+#endif
 	case 'i':
 	    cdfs_redir = 1;
 	    isofile = malloc(strlen(optarg) + 1);
@@ -1054,7 +1067,11 @@ int main(int argc, char *argv[])
 	default:
 	    break;
 	}
+#ifdef __MINGW32__
+	someopt = getopt(argc, argv, "x:u:d:a:s:t:b:i:npqhe");
+#else
 	someopt = getopt(argc, argv, "x:u:d:a:s:t:b:c:i:npqhe");
+#endif
     }
 
     if ((command == 'x') || (command == 'u')) {
@@ -1074,8 +1091,10 @@ int main(int argc, char *argv[])
     if (quiet)
 	printf("Quiet download\n");
 
+#ifndef __MINGW32__
     if (path)
 	printf("Chroot enabled\n");
+#endif
 
     if (cdfs_redir)
 	printf("Cdfs redirection enabled\n");

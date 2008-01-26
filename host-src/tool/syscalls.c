@@ -28,7 +28,11 @@
 #include <unistd.h>
 #include <utime.h>
 #include <dirent.h>
+#ifdef __MINGW32__
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include "syscalls.h"
 #include "dc-io.h"
 
@@ -54,8 +58,13 @@ void dc_fstat(void)
     send_uint(filestat.st_gid);
     send_uint(filestat.st_rdev);
     send_uint(filestat.st_size);
+#ifdef __MINGW32__
+    send_uint(0);
+    send_uint(0);
+#else
     send_uint(filestat.st_blksize);
     send_uint(filestat.st_blocks);
+#endif
     send_uint(filestat.st_atime);
     send_uint(filestat.st_mtime);
     send_uint(filestat.st_ctime);
@@ -195,7 +204,12 @@ void dc_link(void)
 
     recv_data(pathname2, namelen2, 0);
 
+#ifdef __MINGW32__
+    /* Copy the file on Windows */
+    retval = CopyFileA(pathname1, pathname2, 0);
+#else
     retval = link(pathname1, pathname2);
+#endif
 
     send_uint(retval);
 
@@ -311,8 +325,13 @@ void dc_stat(void)
     send_uint(filestat.st_gid);
     send_uint(filestat.st_rdev);
     send_uint(filestat.st_size);
+#ifdef __MINGW32__
+    send_uint(0);
+    send_uint(0);
+#else
     send_uint(filestat.st_blksize);
     send_uint(filestat.st_blocks);
+#endif
     send_uint(filestat.st_atime);
     send_uint(filestat.st_mtime);
     send_uint(filestat.st_ctime);
