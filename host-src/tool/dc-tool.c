@@ -38,8 +38,8 @@
 #include <winsock.h>
 #else
 #include <arpa/inet.h>
-#endif
 #include <sys/socket.h>
+#endif
 #include "minilzo.h"
 #include "syscalls.h"
 #include "dc-io.h"
