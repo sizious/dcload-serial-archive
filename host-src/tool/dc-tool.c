@@ -19,7 +19,12 @@
  *
  */
 
+#ifdef WITH_BFD
 #include <bfd.h>
+#else
+#include <libelf.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -685,85 +690,173 @@ void usage(void)
 unsigned int upload(unsigned char *filename, unsigned int address)
 {
     int inputfd;
-    int size;
+    int size = 0;
     unsigned char *inbuf;
     struct timeval starttime, endtime;
     unsigned char c;
     double stime, etime;
+
+#ifdef WITH_BFD
     bfd *somebfd;
+#else
+    Elf *elf;
+    Elf32_Ehdr *ehdr;
+    Elf32_Shdr *shdr;
+    Elf_Scn *section = NULL;
+    Elf_Data *data;
+    char *section_name;
+    size_t index;
+#endif
 
     lzo_init();
 
-    somebfd = bfd_openr(filename, 0);
+#ifdef WITH_BFD
+    if ((somebfd = bfd_openr(filename, 0))) { /* try bfd first */
+        if(bfd_check_format(somebfd, bfd_object)) {
+            asection *section;
+            
+            printf("File format is %s, ", somebfd->xvec->name);
+            address = somebfd->start_address;
+            size = 0;
+            printf("start address is 0x%x\n", address);
 
-    if (somebfd) { /* try bfd first */
-	if (bfd_check_format(somebfd, bfd_object)) {
-	    asection *section;
-	    
-	    printf("File format is %s, ", somebfd->xvec->name);
-	    address = somebfd->start_address;
-	    size = 0;
-	    printf("start address is 0x%x\n", address);
+            gettimeofday(&starttime, 0);
 
-	    gettimeofday(&starttime, 0);
+            for (section = somebfd->sections; section != NULL; section = section->next) {
+                if ((section->flags & SEC_HAS_CONTENTS) && (section->flags & SEC_LOAD)) {
+                    printf("Section %s, ",section->name);
+                    printf("lma 0x%x, ",section->lma);
+                    printf("size %d\n",bfd_section_size(somebfd, section));
+                    if (bfd_section_size(somebfd, section)) {
+                        size += bfd_section_size(somebfd, section);
+                        inbuf = malloc(bfd_section_size(somebfd, section));
+                        bfd_get_section_contents(somebfd, section, inbuf, 0, bfd_section_size(somebfd, section));
 
-	    for (section = somebfd->sections; section != NULL; section = section->next)
-		if ((section->flags & SEC_HAS_CONTENTS) && (section->flags & SEC_LOAD)) {
-		    printf("Section %s, ",section->name);
-		    printf("lma 0x%x, ",section->lma);
-		    printf("size %d\n",bfd_section_size(somebfd, section));
-		    if (bfd_section_size(somebfd, section)) {
-			size += bfd_section_size(somebfd, section);
-			inbuf = malloc(bfd_section_size(somebfd, section));
-			bfd_get_section_contents(somebfd, section, inbuf, 0, bfd_section_size(somebfd, section));
+                        c = 'B';
+                        serial_write(&c, 1);
+                        blread(&c, 1);
+                        
+                        send_uint(section->lma);
+                        send_uint(bfd_section_size(somebfd, section));
+                        
+                        send_data(inbuf, bfd_section_size(somebfd, section), 1);
+                        
+                        free(inbuf);
+                    }
+                }
+            }
 
-			c = 'B';
-			serial_write(&c, 1);
-			blread(&c, 1);
-			
-			send_uint(section->lma);
-			send_uint(bfd_section_size(somebfd, section));
-			
-			send_data(inbuf, bfd_section_size(somebfd, section), 1);
-			
-			free(inbuf);
-		    }
-		}   
-	    bfd_close(somebfd);
-	} else {
+            bfd_close(somebfd);
+            goto done_transfer;
+        }
 
-/* if that fails, send raw bin */
-		    
-	    printf("File format is raw binary, start address is 0x%x\n", address);
-    	    inputfd = open(filename, O_RDONLY | O_BINARY);
-	    
-	    if (inputfd < 0) {
-		perror(filename);
-		exit(-1);
-	    }
-	    
-	    size = lseek(inputfd, 0, SEEK_END);
-	    lseek(inputfd, 0, SEEK_SET);
-	    
-	    inbuf = malloc(size);
-	    
-	    read(inputfd, inbuf, size);
-	    
-	    close(inputfd);
-	    
-	    gettimeofday(&starttime, 0);
-	    
-	    c = 'B';
-	    serial_write(&c, 1);
-	    blread(&c, 1);
-	    
-	    send_uint(address);
-	    send_uint(size);
-	    
-	    send_data(inbuf, size, 1);
+        bfd_close(somebfd);
+    }
+#else /* !WITH_BFD -- use libelf */
+    if(elf_version(EV_CURRENT) == EV_NONE) {
+        fprintf(stderr, "ELF library initialization error: %s\n", elf_errmsg(-1));
+        exit(-1);
+    }
 
-	}
+    if((inputfd = open(filename, O_RDONLY)) < 0) {
+        perror(filename);
+        exit(-1);
+    }
 
+    if((elf = elf_begin(inputfd, ELF_C_READ, NULL)) == NULL) {
+        fprintf(stderr, "Unable to open ELF file: %s\n", elf_errmsg(-1));
+        exit(-1);
+    }
+
+    if(elf_kind(elf) == ELF_K_ELF) {
+        if(!(ehdr = elf32_getehdr(elf))) {
+            fprintf(stderr, "Unable to read ELF header: %s\n", elf_errmsg(-1));
+            exit(-1);
+        }
+
+        printf("File format is ELF, start address is 0x%x\n", ehdr->e_entry);
+
+        /* Retrieve the index of the ELF section containing the string table of
+           section names */
+        if(elf_getshdrstrndx(elf, &index)) {
+            fprintf(stderr, "Unable to read section index: %s\n", elf_errmsg(-1));
+            exit(-1);
+        }
+
+        gettimeofday(&starttime, 0);
+        while((section = elf_nextscn(elf, section))) {
+            if(!(shdr = elf32_getshdr(section))) {
+                fprintf(stderr, "Unable to read section header: %s\n", elf_errmsg(-1));
+                exit(-1);
+            }
+
+            if (!(section_name = elf_strptr(elf, index, shdr->sh_name))) {
+                fprintf(stderr, "Unable to read section nam: %s\n", elf_errmsg(-1));
+                exit(-1);
+            }
+
+            if(!shdr->sh_addr)
+                continue;
+
+            /* Check if there's some data to upload. */
+            data = elf_getdata(section, NULL);
+            if(!data->d_buf || !data->d_size)
+                continue;
+
+            printf("Section %s, lma 0x%x, size %d\n", section_name,
+                   shdr->sh_addr, shdr->sh_size);
+            size += shdr->sh_size;
+
+            c = 'B';
+            serial_write(&c, 1);
+            blread(&c, 1);
+
+            send_uint(shdr->sh_addr);
+            send_uint(shdr->sh_size);
+
+            do {
+                send_data(data->d_buf, data->d_size, 1);
+            } while((data = elf_getdata(section, data)));
+        }
+
+        elf_end(elf);
+        close(inputfd);
+        goto done_transfer;
+ 	} else {
+        elf_end(elf);
+        close(inputfd);
+    }
+#endif
+    /* if all else fails, send raw bin */
+    printf("File format is raw binary, start address is 0x%x\n", address);
+    inputfd = open(filename, O_RDONLY | O_BINARY);
+
+    if(inputfd < 0) {
+        perror(filename);
+        exit(-1);
+    }
+
+    size = lseek(inputfd, 0, SEEK_END);
+    lseek(inputfd, 0, SEEK_SET);
+
+    inbuf = malloc(size);
+
+    read(inputfd, inbuf, size);
+
+    close(inputfd);
+
+    gettimeofday(&starttime, 0);
+
+    c = 'B';
+    serial_write(&c, 1);
+    blread(&c, 1);
+
+    send_uint(address);
+    send_uint(size);
+
+    send_data(inbuf, size, 1);
+
+done_transfer:
     gettimeofday(&endtime, 0);
 
     stime = starttime.tv_sec + starttime.tv_usec / 1000000.0;
@@ -772,8 +865,7 @@ unsigned int upload(unsigned char *filename, unsigned int address)
     printf("effective: %.2f bytes / sec\n", (double) size / (etime - stime));
     printf("%.2f seconds to transfer %d bytes\n", (etime - stime), size);
     fflush(stdout);
-    
-    }
+
     return address;
 }
 
