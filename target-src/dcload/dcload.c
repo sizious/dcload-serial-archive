@@ -284,7 +284,7 @@ load_data_block_general(unsigned char * addr, unsigned int total, unsigned int v
                 ok = 'G';
 		scif_putchar(ok);
                 total -= newsize;
-                (unsigned char *) data += newsize;
+                data += newsize;
             } else {
                 ok = 'B';
 		scif_putchar(ok);
