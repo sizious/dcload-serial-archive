@@ -30,7 +30,7 @@ dcload.bin: dcload
 	$(OBJCOPY) -R .stack -O binary $< $@
 
 dcload: $(DCLOBJECTS)
-	$(CC) $(CFLAGS) -Wl,-Tdcload.x -nostartfiles -nostdlib $^ -o $@ -lgcc
+	$(CC) $(CFLAGS) -Wl,-Tdcload$(TARGETCCVER).x -nostartfiles -nostdlib $^ -o $@ -lgcc
 
 exception.lzo: exception.bin
 	$(LZO) $< $@	

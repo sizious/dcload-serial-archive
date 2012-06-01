@@ -29,7 +29,7 @@ all: 1st_read.bin 1st_read.srec
 	$(OBJCOPY) -O srec $< $@	
 
 1st_read: $(OBJECTS)
-	$(CC) $(CFLAGS) -Wl,-Tdc.x -nostartfiles -nostdlib $^ -o $@ -lgcc
+	$(CC) $(CFLAGS) -Wl,-Tdc$(TARGETCCVER).x -nostartfiles -nostdlib $^ -o $@ -lgcc
 
 minilzo.o: $(LZOFILES)
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $< 

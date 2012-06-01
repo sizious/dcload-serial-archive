@@ -25,10 +25,10 @@ exception-test.bin: exception-test
 	$(OBJCOPY) -O binary $< $@
 
 console-test: $(OBJECTS) console-test.o
-	$(CC) $(CFLAGS) -Wl,-Tdc.x -nostartfiles -nostdlib $^ -o $@ -lgcc
+	$(CC) $(CFLAGS) -Wl,-Tdc$(TARGETCCVER).x -nostartfiles -nostdlib $^ -o $@ -lgcc
 
 exception-test: $(OBJECTS) exception-test.o
-	$(CC) $(CFLAGS) -Wl,-Tdc.x -nostartfiles -nostdlib $^ -o $@ -lgcc
+	$(CC) $(CFLAGS) -Wl,-Tdc$(TARGETCCVER).x -nostartfiles -nostdlib $^ -o $@ -lgcc
 
 .PHONY : clean
 clean:
