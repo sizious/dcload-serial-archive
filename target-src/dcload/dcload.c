@@ -23,7 +23,7 @@
 #include "minilzo.h"
 #include "video.h"
 
-#define NAME "dcload-serial 1.0.4"
+#define NAME "dcload-serial 1.0.5"
 
 #define VIDMODEREG (volatile unsigned int *)0xa05f8044
 #define VIDBORDER (volatile unsigned int *)0xa05f8040

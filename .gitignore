@@ -1,5 +1,4 @@
-.o
-.bin
-.lzo
-.srec
-
+*.o
+*.bin
+*.lzo
+*.srec
