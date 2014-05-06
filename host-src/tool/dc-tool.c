@@ -45,6 +45,10 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #endif
+#ifdef __APPLE__
+#include <IOKit/serial/ioss.h>
+#include <sys/ioctl.h>
+#endif
 #include "minilzo.h"
 #include "syscalls.h"
 #include "dc-io.h"
@@ -527,9 +531,19 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
 	    break;
 	}
     }
-    
-    cfsetispeed(&newtio, speedsel);
-    cfsetospeed(&newtio, speedsel);
+
+#ifdef __APPLE__
+    if(speed > 115200) {
+        cfsetispeed(&newtio, B115200);
+        cfsetospeed(&newtio, B115200);
+    }
+    else {
+#endif
+        cfsetispeed(&newtio, speedsel);
+        cfsetospeed(&newtio, speedsel);
+#ifdef __APPLE__
+    }
+#endif
 
     // we don't error on these because it *may* still work
     if (tcflush(dcfd, TCIFLUSH) < 0) {
@@ -539,6 +553,16 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
 	perror("tcsetattr");
 	printf("warning: your baud rate is likely set incorrectly\n");
     }
+
+#ifdef __APPLE__
+    if(speed > 115200) {
+        speed_t s = speed; // Set 14400 baud
+        if (ioctl(dcfd, IOSSIOSPEED, &speed) < 0) {
+            perror("IOSSIOSPEED");
+            printf("warning: your baud rate is likely set incorrectly\n");
+        }
+    }
+#endif
 
 #else
     BOOL fSuccess;
@@ -637,30 +661,33 @@ int change_speed(char *device_name, unsigned int speed)
     send_uint(rv);
     rv = recv_uint();
     printf("done\n");
+    return 0;
 }
 
 int open_gdb_socket(int port)
 {
-  struct sockaddr_in server_addr;
+    struct sockaddr_in server_addr;
 
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons( port );
-  server_addr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-  if ( (gdb_server_socket = socket( PF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-	perror( "error creating gdb server socket" );
-	return -1;
-  }
+    if((gdb_server_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        perror("error creating gdb server socket");
+        return -1;
+    }
 
-  if ( bind( gdb_server_socket, (struct sockaddr*)&server_addr, sizeof( server_addr ) ) < 0 ) {
-	perror( "error binding gdb server socket" );
-	return -1;
-  }
+    if(bind(gdb_server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("error binding gdb server socket");
+        return -1;
+    }
 
-  if ( listen( gdb_server_socket, 0 ) < 0 ) {
-	perror( "error listening to gdb server socket" );
-	return -1;
-  }
+    if(listen(gdb_server_socket, 0) < 0) {
+        perror("error listening to gdb server socket");
+        return -1;
+    }
+
+    return 0;
 }
 
 void usage(void)
@@ -758,8 +785,8 @@ unsigned int upload(unsigned char *filename, unsigned int address)
         exit(-1);
     }
 
-    if((inputfd = open(filename, O_RDONLY)) < 0) {
-        perror(filename);
+    if((inputfd = open((char *)filename, O_RDONLY)) < 0) {
+        perror((char *)filename);
         exit(-1);
     }
 
@@ -830,10 +857,10 @@ unsigned int upload(unsigned char *filename, unsigned int address)
 #endif
     /* if all else fails, send raw bin */
     printf("File format is raw binary, start address is 0x%x\n", address);
-    inputfd = open(filename, O_RDONLY | O_BINARY);
+    inputfd = open((char *)filename, O_RDONLY | O_BINARY);
 
     if(inputfd < 0) {
-        perror(filename);
+        perror((char *)filename);
         exit(-1);
     }
 
@@ -881,10 +908,10 @@ void download(unsigned char *filename, unsigned int address,
     struct timeval starttime, endtime;
     double stime, etime;
 
-    outputfd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0644);
+    outputfd = open((char *)filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0644);
 
     if (outputfd < 0) {
-	perror(filename);
+	perror((char *)filename);
 	exit(-1);
     }
 
@@ -944,15 +971,15 @@ void do_console(unsigned char *path, unsigned char *isofile)
     int isofd;
 
     if (isofile) {
-	isofd = open(isofile, O_RDONLY | O_BINARY);
+	isofd = open((char *)isofile, O_RDONLY | O_BINARY);
 	if (isofd < 0)
-	    perror(isofile);
+	    perror((char *)isofile);
     }
 	
 #ifndef __MINGW32__
     if (path)
-	if (chroot(path))
-	    perror(path);
+	if (chroot((char *)path))
+	    perror((char *)path);
 #endif
 
     while (1) {
@@ -1090,7 +1117,7 @@ int main(int argc, char *argv[])
 	    }
 	    command = 'x';
 	    filename = malloc(strlen(optarg) + 1);
-	    strcpy(filename, optarg);
+	    strcpy((char *)filename, optarg);
 	    break;
 	case 'u':
 	    if (command) {
@@ -1099,7 +1126,7 @@ int main(int argc, char *argv[])
 	    }
 	    command = 'u';
 	    filename = malloc(strlen(optarg) + 1);
-	    strcpy(filename, optarg);
+	    strcpy((char *)filename, optarg);
 	    break;
 	case 'd':
 	    if (command) {
@@ -1108,18 +1135,18 @@ int main(int argc, char *argv[])
 	    }
 	    command = 'd';
 	    filename = malloc(strlen(optarg) + 1);
-	    strcpy(filename, optarg);
+	    strcpy((char *)filename, optarg);
 	    break;
 #ifndef __MINGW32__
 	case 'c':
 	    path = malloc(strlen(optarg) + 1);
-	    strcpy(path, optarg);
+	    strcpy((char *)path, optarg);
 	    break;
 #endif
 	case 'i':
 	    cdfs_redir = 1;
 	    isofile = malloc(strlen(optarg) + 1);
-	    strcpy(isofile, optarg);
+	    strcpy((char *)isofile, optarg);
 	    break;
 	case 'a':
 	    address = strtoul(optarg, NULL, 0);
@@ -1169,8 +1196,8 @@ int main(int argc, char *argv[])
 
     if ((command == 'x') || (command == 'u')) {
 	struct stat statbuf;
-	if(stat(filename, &statbuf)) {
-	    perror(filename);
+	if(stat((char *)filename, &statbuf)) {
+	    perror((char *)filename);
 	    exit(1);
 	}
     }	
