@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of the dcload Dreamcast serial loader
  *
  * Copyright (C) 2001 Andrew Kieschnick <andrewk@napalm-x.com>
@@ -398,7 +398,7 @@ void dc_closedir(void)
     somedir = (DIR *) recv_uint();
 
     retval = closedir(somedir);
-    
+
     send_uint(retval);
 }
 
@@ -410,7 +410,7 @@ void dc_readdir(void)
     somedir = (DIR *) recv_uint();
 
     somedirent = readdir(somedir);
-    
+
     if (somedirent) {
 	send_uint(1);
 	send_uint(somedirent->d_ino);
@@ -418,7 +418,7 @@ void dc_readdir(void)
 	send_uint(0);
 	send_uint(0);
 	send_uint(0);
-#else	
+#else
 #ifdef __APPLE_CC__
 	send_uint(0);
 #else
@@ -426,11 +426,23 @@ void dc_readdir(void)
 #endif
 	send_uint(somedirent->d_reclen);
 	send_uint(somedirent->d_type);
-#endif	
+#endif
 	send_uint(strlen(somedirent->d_name)+1);
 	send_data(somedirent->d_name, strlen(somedirent->d_name)+1, 0);
-    } else 
+    } else
 	send_uint(0);
+}
+
+void dc_rewinddir(void)
+{
+    DIR *somedir;
+    int retval;
+
+    somedir = (DIR *) recv_uint();
+
+    rewinddir(somedir);
+
+    send_uint(0);
 }
 
 void dc_cdfs_redir_read_sectors(int isofd)
@@ -442,7 +454,7 @@ void dc_cdfs_redir_read_sectors(int isofd)
     start = recv_uint();
     num = recv_uint();
 
-    start -= 150; 
+    start -= 150;
 
     lseek(isofd, start * 2048, SEEK_SET);
 
@@ -451,6 +463,7 @@ void dc_cdfs_redir_read_sectors(int isofd)
     read(isofd, buf, num * 2048);
 
     send_data(buf, num * 2048, 0);
+    free(buf);
 }
 
 #define GDBBUFSIZE 1024

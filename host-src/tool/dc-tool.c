@@ -1,4 +1,4 @@
-/* 
+/*
  * dc-tool, a tool for use with the dcload serial loader
  *
  * Copyright (C) 2001 Andrew Kieschnick <andrewk@napalm-x.com>
@@ -139,7 +139,7 @@ const char *ostr;
     static char *place = EMSG;              /* option letter processing */
     char *oli;                              /* option letter list index */
     int ret;
-    
+
     if (optreset || !*place) {              /* update scanning pointer */
 	optreset = 0;
 	if (optind >= nargc || *(place = nargv[optind]) != '-') {
@@ -210,7 +210,7 @@ HANDLE hCommPort;
 int serial_read(void *buffer, int count)
 {
     BOOL fSuccess;
-    
+
     fSuccess = ReadFile(hCommPort, buffer, count, (DWORD *)&count, NULL);
     if( !fSuccess )
 	return -1;
@@ -220,7 +220,7 @@ int serial_read(void *buffer, int count)
 int serial_write(void *buffer, int count)
 {
     BOOL fSuccess;
-    
+
     fSuccess = WriteFile(hCommPort, buffer, count, (DWORD *)&count, NULL);
     if( !fSuccess )
 	return -1;
@@ -231,7 +231,7 @@ int serial_putc(char ch)
 {
     BOOL fSuccess;
     int count = 1;
-    
+
     fSuccess = WriteFile(hCommPort, &ch, count, (DWORD *)&count, NULL);
     if( !fSuccess )
         return -1;
@@ -288,8 +288,8 @@ char serial_getc()
 int send_uint(unsigned int value)
 {
     unsigned int tmp = value;
-    
-    /* send little-endian */    
+
+    /* send little-endian */
     serial_putc((char)(tmp & 0xFF));
     serial_putc((char)((tmp >> 0x08) & 0xFF));
     serial_putc((char)((tmp >> 0x10) & 0xFF));
@@ -328,11 +328,11 @@ void recv_data(void *data, unsigned int total, unsigned int verbose)
     unsigned int size, newsize;
     unsigned char *tmp;
 
-    if (verbose) { 
+    if (verbose) {
 	printf("recv_data: ");
 	fflush(stdout);
     }
-    
+
     while (total) {
 
 	blread(&type, 1);
@@ -409,7 +409,7 @@ void send_data(unsigned char * addr, unsigned int size, unsigned int verbose)
 	lzo1x_1_compress((unsigned char *)addr, sendsize, buffer, &csize, wrkmem);
 	if (csize < sendsize) {
 	    // send compressed
-	    if (verbose) { 
+	    if (verbose) {
 		printf("C");
 		fflush(stdout);
 	    }
@@ -428,7 +428,7 @@ void send_data(unsigned char * addr, unsigned int size, unsigned int verbose)
 		serial_write(&sum, 1);
 		blread(&data, 1);
 	    }
-	} else { 
+	} else {
 	    // send uncompressed
 	    if (verbose) {
 		printf("U");
@@ -458,7 +458,7 @@ void send_data(unsigned char * addr, unsigned int size, unsigned int verbose)
 void output_error(void)
 {
     char *lpMsgBuf;
-    
+
     FormatMessage(
 	FORMAT_MESSAGE_ALLOCATE_BUFFER |
 	FORMAT_MESSAGE_FROM_SYSTEM |
@@ -568,17 +568,17 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
     BOOL fSuccess;
     COMMTIMEOUTS ctmoCommPort;
     DCB dcbCommPort;
-    
+
     /* Setup the com port */
     hCommPort = CreateFile(devicename, GENERIC_READ | GENERIC_WRITE, 0,
 			   NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-    
-    if( hCommPort == INVALID_HANDLE_VALUE ) {   
+
+    if( hCommPort == INVALID_HANDLE_VALUE ) {
 	printf( "*Error opening com port\n");
 	output_error();
 	return -1;
     }
-    
+
     ctmoCommPort.ReadIntervalTimeout = MAXDWORD;
     ctmoCommPort.ReadTotalTimeoutMultiplier = MAXDWORD;
     ctmoCommPort.ReadTotalTimeoutConstant = MAXDWORD;
@@ -586,19 +586,19 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
     ctmoCommPort.WriteTotalTimeoutConstant = 0;
     SetCommTimeouts( hCommPort, &ctmoCommPort );
     dcbCommPort.DCBlength = sizeof(DCB);
-    
+
     fSuccess = GetCommState( hCommPort, &dcbCommPort );
     if( !fSuccess ) {
 	printf( "*Error getting com port state\n" );
 	output_error();
 	return -1;
     }
-    
+
     dcbCommPort.BaudRate = speed;
     dcbCommPort.ByteSize = DATA_BITS;
     dcbCommPort.Parity = PARITY_SET;
     dcbCommPort.StopBits = STOP_BITS;
-    
+
     fSuccess = SetCommState( hCommPort, &dcbCommPort );
     if( !fSuccess ) {
 	printf( "*Error setting com port state\n" );
@@ -741,7 +741,7 @@ unsigned int upload(unsigned char *filename, unsigned int address)
     if ((somebfd = bfd_openr(filename, 0))) { /* try bfd first */
         if(bfd_check_format(somebfd, bfd_object)) {
             asection *section;
-            
+
             printf("File format is %s, ", somebfd->xvec->name);
             address = somebfd->start_address;
             size = 0;
@@ -762,12 +762,12 @@ unsigned int upload(unsigned char *filename, unsigned int address)
                         c = 'B';
                         serial_write(&c, 1);
                         blread(&c, 1);
-                        
+
                         send_uint(section->lma);
                         send_uint(bfd_section_size(somebfd, section));
-                        
+
                         send_data(inbuf, bfd_section_size(somebfd, section), 1);
-                        
+
                         free(inbuf);
                     }
                 }
@@ -921,32 +921,32 @@ void download(unsigned char *filename, unsigned int address,
 	serial_write("F", 1);
     else
 	serial_write("G", 1);
-    
+
     serial_read(&c, 1);
-    
+
     send_uint(address);
-    
+
     send_uint(size);
-    
+
     send_uint(wrkmem);
-    
+
     gettimeofday(&starttime, 0);
-    
+
     recv_data(data, size, 1);
-    
+
     gettimeofday(&endtime, 0);
-    
+
     printf("Received %d bytes\n", size);
-    
+
     stime = starttime.tv_sec + starttime.tv_usec / 1000000.0;
     etime = endtime.tv_sec + endtime.tv_usec / 1000000.0;
-    
+
     printf("effective: %.2f bytes / sec\n", (double) size / (etime - stime));
     printf("%.2f seconds to transfer %d bytes\n", (etime - stime), size);
     fflush(stdout);
-    
+
     write(outputfd, data, size);
-    
+
     close(outputfd);
 }
 
@@ -975,7 +975,7 @@ void do_console(unsigned char *path, unsigned char *isofile)
 	if (isofd < 0)
 	    perror((char *)isofile);
     }
-	
+
 #ifndef __MINGW32__
     if (path)
 	if (chroot((char *)path))
@@ -1051,6 +1051,9 @@ void do_console(unsigned char *path, unsigned char *isofile)
 	case 20:
 	    dc_gdbpacket();
 	    break;
+    case 21:
+        dc_rewinddir();
+        break;
 	default:
 	    printf("Unimplemented command (%d) \n", command);
 	    printf("Assuming program has exited, or something...\n");
@@ -1074,7 +1077,7 @@ void do_dumbterm(void)
     unsigned char c;
 
     printf("\nDumb terminal mode isn't implemented, so you get this half-assed one.\n\n");
-    
+
     fflush(stdout);
 
     while (1) {
@@ -1200,7 +1203,7 @@ int main(int argc, char *argv[])
 	    perror((char *)filename);
 	    exit(1);
 	}
-    }	
+    }
 
     if (console)
 	printf("Console enabled\n");
@@ -1231,10 +1234,10 @@ int main(int argc, char *argv[])
 
     if (open_serial(device_name, BAUD_RATE, &dummy)<0)
         return 1;
-    
+
     if (speed != BAUD_RATE)
 	change_speed(device_name, speed);
-    
+
     switch (command) {
     case 'x':
 	if (cdfs_redir) {

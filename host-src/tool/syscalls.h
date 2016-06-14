@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of the dcload Dreamcast serial loader
  *
  * Copyright (C) 2001 Andrew Kieschnick <andrewk@napalm-x.com>
@@ -40,6 +40,7 @@ void dc_utime(void);
 void dc_opendir(void);
 void dc_readdir(void);
 void dc_closedir(void);
+void dc_rewinddir(void);
 
 void dc_cdfs_redir_read_sectors(int isofd);
 

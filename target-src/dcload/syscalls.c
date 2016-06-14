@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of the dcload Dreamcast serial loader
  *
  * Copyright (C) 2001 Andrew Kieschnick <andrewk@napalm-x.com>
@@ -247,14 +247,14 @@ int closedir(DIR *dir)
     put_uint(dir);
     return(get_uint());
 }
- 
+
 struct dirent *readdir(DIR *dir)
 {
     static struct dirent ourdirent;
     int namelen;
 
     scif_putchar(18);
-    
+
     put_uint(dir);
 
     if (get_uint()) {
@@ -264,12 +264,12 @@ struct dirent *readdir(DIR *dir)
 	ourdirent.d_type = get_uint();
 	namelen = get_uint();
 	load_data_block_general(ourdirent.d_name, namelen, 0);
-	
+
 	return &ourdirent;
     } else
 	return 0;
 }
-	
+
 size_t gdbpacket(const char *in_buf, unsigned int size_pack, char* out_buf)
 {
     size_t in_size = size_pack >> 16, out_size = size_pack & 0xffff, ret_size;
@@ -281,11 +281,18 @@ size_t gdbpacket(const char *in_buf, unsigned int size_pack, char* out_buf)
 
     if (in_size)
 	send_data_block_compressed(in_buf, in_size);
-    
+
     ret_size = get_uint();
 
     if (ret_size && ret_size <= out_size)
 	load_data_block_general(out_buf, ret_size, 0);
 
     return ret_size;
+}
+
+int rewinddir(DIR *dir)
+{
+	scif_putchar(21);
+	put_uint(dir);
+	return(get_uint());
 }
