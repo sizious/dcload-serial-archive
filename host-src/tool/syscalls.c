@@ -422,7 +422,9 @@ void dc_readdir(void)
 #ifdef __APPLE_CC__
 	send_uint(0);
 #else
+#ifndef __FreeBSD__
 	send_uint(somedirent->d_off);
+#endif
 #endif
 	send_uint(somedirent->d_reclen);
 	send_uint(somedirent->d_type);

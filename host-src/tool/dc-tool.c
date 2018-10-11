@@ -51,6 +51,9 @@
 #include <IOKit/serial/ioss.h>
 #include <sys/ioctl.h>
 #endif
+#ifdef __FreeBSD__
+#include <netinet/in.h>
+#endif
 #include "minilzo.h"
 #include "syscalls.h"
 #include "dc-io.h"
