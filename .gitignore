@@ -3,3 +3,8 @@
 *.lzo
 *.srec
 *.exe
+*.elf
+example-src/console-test
+example-src/exception-test
+target-src/dcload/dcload
+target-src/dcload/exception
