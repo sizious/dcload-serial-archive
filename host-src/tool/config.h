@@ -23,6 +23,6 @@
 #define __CONFIG_H__
 
 #define PACKAGE 			"dc-tool" 
-#define PACKAGE_VERSION 	"1.0.5"
+#define PACKAGE_VERSION 	DCLOAD_VERSION
 
 #endif /* __CONFIG_H__ */

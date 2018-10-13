@@ -3,16 +3,22 @@ include ../../Makefile.cfg
 LZOPATH = ../../minilzo.106
 
 CC		= $(HOSTCC)
-CFLAGS	= $(HOSTCFLAGS) -DBAUD_RATE=$(SERIALSPEED) -DSERIALDEVICE="\"$(SERIALDEVICE)\"" -DHAVE_GETOPT -DB1500000 -DB500000
+CFLAGS	= $(HOSTCFLAGS) -DDCLOAD_VERSION=\"$(VERSION)\" -DBAUD_RATE=$(SERIALSPEED) -DSERIALDEVICE="\"$(SERIALDEVICE)\"" -DHAVE_GETOPT -DB1500000 -DB500000
 LDFLAGS = $(HOSTLDFLAGS)
 INCLUDE	= -I$(LZOPATH) -I/usr/local/include
 
 ifeq ($(WITH_BFD),1)
-  CFLAGS	+= -I$(BFDINCLUDE) -DWITH_BFD
-  LDFLAGS	+= -L$(BFDLIB)
+  CFLAGS	+= -DWITH_BFD
+  LDFLAGS	= -L$(BFDLIB) -lbfd -liberty -lintl -lz
+  INCLUDE	+= -I$(BFDINCLUDE)
 else
-  CFLAGS	+= -I/usr/local/include/libelf
-  LDFLAGS	+= -lelf
+  LDFLAGS	= -L$(ELFLIB) -lelf
+  INCLUDE	+= -I$(ELFINCLUDE)
+endif
+
+# Additional libraries for MinGW/MSYS
+ifdef MINGW32
+  BFDLIB	+= -lwsock32 -liconv
 endif
 
 ifdef STANDALONE_BINARY
