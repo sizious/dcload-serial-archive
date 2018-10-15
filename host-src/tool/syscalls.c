@@ -422,11 +422,13 @@ void dc_readdir(void)
 #ifdef __APPLE_CC__
 	send_uint(0);
 #else
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__CYGWIN__)
 	send_uint(somedirent->d_off);
 #endif
 #endif
+#ifndef __CYGWIN__
 	send_uint(somedirent->d_reclen);
+#endif
 	send_uint(somedirent->d_type);
 #endif
 	send_uint(strlen(somedirent->d_name)+1);
