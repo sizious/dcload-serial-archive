@@ -25,7 +25,7 @@ ifdef STANDALONE_BINARY
   LDFLAGS 	+= -static
 endif
 
-DCTOOL	= dc-tool$(EXECUTABLEEXTENSION)
+DCTOOL	= dc-tool-ser$(EXECUTABLEEXTENSION)
 
 OBJECTS	= dc-tool.o minilzo.o syscalls.o unlink.o
 LZOFILES = $(LZOPATH)/minilzo.c $(LZOPATH)/minilzo.h $(LZOPATH)/lzoconf.h
