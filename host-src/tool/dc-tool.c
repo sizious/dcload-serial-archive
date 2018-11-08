@@ -1096,6 +1096,12 @@ void do_dumbterm(void)
     }
 }
 
+#ifdef __MINGW32__
+#define AVAILABLE_OPTIONS 		"x:u:d:a:s:t:b:i:npqheEg"
+#else
+#define AVAILABLE_OPTIONS		"x:u:d:a:s:t:b:c:i:npqheEg"
+#endif
+
 int main(int argc, char *argv[])
 {
     unsigned int address = 0x8c010000;
@@ -1115,11 +1121,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
 	usage();
 
-#ifdef __MINGW32__
-    someopt = getopt(argc, argv, "x:u:d:a:s:t:b:i:npqheEg");
-#else
-    someopt = getopt(argc, argv, "x:u:d:a:s:t:b:c:i:npqheEg");
-#endif
+    someopt = getopt(argc, argv, AVAILABLE_OPTIONS);
     while (someopt > 0) {
 	switch (someopt) {
 	case 'x':
@@ -1199,11 +1201,7 @@ int main(int argc, char *argv[])
 	default:
 	    break;
 	}
-#ifdef __MINGW32__
-	someopt = getopt(argc, argv, "x:u:d:a:s:t:b:i:npqhe");
-#else
-	someopt = getopt(argc, argv, "x:u:d:a:s:t:b:c:i:npqhe");
-#endif
+	someopt = getopt(argc, argv, AVAILABLE_OPTIONS);
     }
 
     if ((command == 'x') || (command == 'u')) {
@@ -1233,6 +1231,9 @@ int main(int argc, char *argv[])
 
     if (speedhack)
 	printf("Alternate 115200 enabled\n");
+
+	if (use_extclk)
+	printf("External clock usage enabled\n");
 
     /* test for resonable baud - this is for POSIX systems */
     if (speed != BAUD_RATE) {
