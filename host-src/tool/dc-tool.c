@@ -59,8 +59,12 @@
 #include "dc-io.h"
 
 int _nl_msg_cat_cntr;
+#ifndef __MINGW32__
 int gdb_server_socket = -1;
-
+#else
+SOCKET gdb_server_socket = -1;
+#endif
+	
 #define DCLOADBUFFER	16384 /* was 8192 */
 #ifdef _WIN32
 #define DATA_BITS	8
@@ -209,7 +213,18 @@ int dcfd;
 struct termios oldtio;
 #else
 HANDLE hCommPort;
+BOOL bDebugSocketStarted = FALSE;
 #endif
+
+void cleanup()
+{
+#ifdef __MINGW32__
+	if (bDebugSocketStarted) {
+		WSACleanup();
+		bDebugSocketStarted = FALSE;
+	}
+#endif
+}
 
 #ifdef _WIN32
 int serial_read(void *buffer, int count)
@@ -627,6 +642,7 @@ void finish_serial(void)
     tcflush(dcfd, TCIOFLUSH);
     tcsetattr(dcfd, TCSANOW, &oldtio);
 #endif
+	cleanup();
 }
 
 /* close the host serial port */
@@ -681,22 +697,37 @@ int open_gdb_socket(int port)
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    if((gdb_server_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        perror("error creating gdb server socket");
-        return -1;
+    gdb_server_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+#ifdef __MINGW32__
+	if ( gdb_server_socket == INVALID_SOCKET) {
+#else
+    if ( gdb_server_socket < 0 ) {
+#endif
+      perror( "error creating gdb server socket" );
+      return -1;
     }
 
-    if(bind(gdb_server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("error binding gdb server socket");
-        return -1;
+    int checkbind = bind( gdb_server_socket, (struct sockaddr*)&server_addr, sizeof( server_addr ) );
+#ifdef __MINGW32__
+	if( checkbind == SOCKET_ERROR ) {
+#else
+    if ( checkbind < 0 ) {
+#endif
+	  perror( "error binding gdb server socket" );
+	  return -1;
+	}
+
+  int checklisten = listen( gdb_server_socket, 0 );
+#ifdef __MINGW32__
+	if ( checklisten == SOCKET_ERROR ) {
+#else
+	if ( checklisten < 0 ) {
+#endif
+	  perror( "error listening to gdb server socket" );
+	  return -1;
     }
 
-    if(listen(gdb_server_socket, 0) < 0) {
-        perror("error listening to gdb server socket");
-        return -1;
-    }
-
-    return 0;
+	return 0;
 }
 
 void usage(void)
@@ -720,8 +751,25 @@ void usage(void)
     printf("-i <isofile>  Enable cdfs redirection using iso image <isofile>\n");
     printf("-g            Start a GDB server\n");
     printf("-h            Usage information (you\'re looking at it)\n\n");
+	cleanup();
     exit(0);
 }
+
+/* Got to make sure WinSock is initalized */
+#ifdef __MINGW32__
+int start_ws()
+{
+    WSADATA wsaData;
+    int failed = 0;
+    failed = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if ( failed != NO_ERROR ) {
+	perror("WSAStartup");
+	return 1;
+    }
+	
+	return 0;
+}
+#endif
 
 unsigned int upload(unsigned char *filename, unsigned int address)
 {
@@ -1196,6 +1244,11 @@ int main(int argc, char *argv[])
 	    break;
 	case 'g':
 	    printf("Starting a GDB server on port 2159\n");
+#ifdef __MINGW32__
+		if(start_ws())
+			return -1;
+		bDebugSocketStarted = TRUE;
+#endif
 	    open_gdb_socket(2159);
 	    break;
 	default:
@@ -1273,6 +1326,7 @@ int main(int argc, char *argv[])
     case 'd':
 	if (!size) {
 	    printf("You must specify a size (-s <size>) with download (-d <filename>)\n");
+		cleanup();
 	    exit(0);
 	}
 	printf("Download %d bytes at <0x%x> to <%s>\n", size, address,
@@ -1287,5 +1341,6 @@ int main(int argc, char *argv[])
 	    usage();
 	break;
     }
+	cleanup();
     exit(0);
 }
