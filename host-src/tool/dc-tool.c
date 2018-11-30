@@ -59,12 +59,18 @@
 #include "dc-io.h"
 
 int _nl_msg_cat_cntr;
+
+/* GNU Debugger (GDB) */
+int gdb_socket_started = 0;
 #ifndef __MINGW32__
 int gdb_server_socket = -1;
+int socket_fd = 0;
 #else
-SOCKET gdb_server_socket = -1;
+/* Winsock SOCKET is defined as an unsigned int, so -1 won't work here */	
+SOCKET gdb_server_socket = 0;
+SOCKET socket_fd = 0;	
 #endif
-	
+
 #define DCLOADBUFFER	16384 /* was 8192 */
 #ifdef _WIN32
 #define DATA_BITS	8
@@ -213,17 +219,21 @@ int dcfd;
 struct termios oldtio;
 #else
 HANDLE hCommPort;
-BOOL bDebugSocketStarted = FALSE;
 #endif
 
 void cleanup()
 {
+	if (gdb_socket_started) {		
+		gdb_socket_started = 0;
 #ifdef __MINGW32__
-	if (bDebugSocketStarted) {
+		closesocket(socket_fd);
+		closesocket(gdb_server_socket);
 		WSACleanup();
-		bDebugSocketStarted = FALSE;
-	}
+#else
+		close(socket_fd);
+		close(gdb_server_socket);
 #endif
+	}
 }
 
 #ifdef _WIN32
@@ -1243,13 +1253,13 @@ int main(int argc, char *argv[])
 	    use_extclk = 1;
 	    break;
 	case 'g':
-	    printf("Starting a GDB server on port 2159\n");
+	    printf("Starting a GDB server on port 2159\n");		
 #ifdef __MINGW32__
 		if(start_ws())
-			return -1;
-		bDebugSocketStarted = TRUE;
+		  return -1;		
 #endif
 	    open_gdb_socket(2159);
+		gdb_socket_started = 1;
 	    break;
 	default:
 	    break;
