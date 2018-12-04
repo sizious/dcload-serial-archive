@@ -231,12 +231,14 @@ void cleanup()
 		strcpy(gdb_buf, "+$X0f#ee\0");		
 		
 #ifdef __MINGW32__		
-		send(socket_fd, gdb_buf, strlen(gdb_buf), 0);		
+		send(socket_fd, gdb_buf, strlen(gdb_buf), 0);
+		sleep(1);
 		closesocket(socket_fd);
 		closesocket(gdb_server_socket);
 		WSACleanup();
 #else
-		write(socket_fd, gdb_buf, strlen(gdb_buf));	
+		write(socket_fd, gdb_buf, strlen(gdb_buf));
+		sleep(1);
 		close(socket_fd);
 		close(gdb_server_socket);
 #endif
