@@ -223,13 +223,20 @@ HANDLE hCommPort;
 
 void cleanup()
 {
-	if (gdb_socket_started) {		
+	if (gdb_socket_started) {	
 		gdb_socket_started = 0;
-#ifdef __MINGW32__
+		
+		// Send SIGTERM to the GDB Client, telling remote DC program has ended
+		char gdb_buf[16];
+		strcpy(gdb_buf, "+$X0f#ee\0");		
+		
+#ifdef __MINGW32__		
+		send(socket_fd, gdb_buf, strlen(gdb_buf), 0);		
 		closesocket(socket_fd);
 		closesocket(gdb_server_socket);
 		WSACleanup();
 #else
+		write(socket_fd, gdb_buf, strlen(gdb_buf));	
 		close(socket_fd);
 		close(gdb_server_socket);
 #endif
