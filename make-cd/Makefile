@@ -10,6 +10,10 @@ TOUCH		= touch
 
 all: $(1ST_READ) audio.raw burn-audio data.raw burn-data
 
+$(1ST_READ):
+	cd ../target-src && make
+
+
 audio.raw:
 	$(DD) if=/dev/zero of=audio.raw bs=2352 count=300
 

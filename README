@@ -8,24 +8,23 @@ Features
 
 Building
 
-1. Edit Makefile.cfg for your system, and then run make
+1. Edit Makefile.cfg for your system, and then run `make`
 
 Installation
 
 1. PC - run make install (installs dc-tool)
 2. DC
-   a. cd make-cd, edit Makefile, insert blank cd-r, run make
+   a. `cd make-cd`, edit Makefile, insert blank cd-r, run `make`. If
+   1st_read.bin hasn't been built yet, this Makefile will build it
+ or 
    b. take target-src/1st_read/1st_read.bin and stuff it on a cd yourself
       (please use the IP.BIN from the make-cd directory if you are going
-       to distribute either cds or cd images)
 
 Testing
 
-1. cd example-src
-2. dc-tool -x console-test.bin (tests some PC I/O)
-   (or dc-tool -x console-test, now that dc-tool can load ELF)
-3. dc-tool -x exception-test.bin (generates an exception)
-   (or dc-tool -x exception-test, now that dc-tool can load ELF)
+1. `cd example-src`
+2. `dc-tool -x console-test` (tests some PC I/O)
+3. `dc-tool -x exception-test` (generates an exception)
 
 KOS GDB-over-dcload
 
