@@ -545,11 +545,13 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
 	switch(speed) {
 #ifdef B1500000
 	case 1500000:
+		printf("B1500000 speed selected\n");
 	    speedsel = B1500000;
 	    break;
 #endif
 #ifdef B500000
 	case 500000:
+		printf("B500000 speed selected\n");
 	    speedsel = B500000;
 	    break;
 #endif
@@ -575,22 +577,12 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
 	}
     }
 
-#ifdef __APPLE__
-    if(speed > 115200) {
-        cfsetispeed(&newtio, B115200);
-        cfsetospeed(&newtio, B115200);
-    }
-    else {
-#endif
-        cfsetispeed(&newtio, speedsel);
-        cfsetospeed(&newtio, speedsel);
-#ifdef __APPLE__
-    }
-#endif
+    cfsetispeed(&newtio, speedsel);
+    cfsetospeed(&newtio, speedsel);
 
     // we don't error on these because it *may* still work
     if (tcflush(dcfd, TCIFLUSH) < 0) {
-	perror("tcflush");
+    perror("tcflush");
     }
     if (tcsetattr(dcfd, TCSANOW, &newtio) < 0) {
 	perror("tcsetattr");
@@ -599,10 +591,10 @@ int open_serial(char *devicename, unsigned int speed, unsigned int *speedtest)
 
 #ifdef __APPLE__
     if(speed > 115200) {
-        speed_t s = speed; // Set 14400 baud
-        if (ioctl(dcfd, IOSSIOSPEED, &speed) < 0) {
+		/* Necessary to call ioctl to set non-standard speeds (aka higher than 115200) */
+		if (ioctl(dcfd, IOSSIOSPEED, &speed) < 0) {
             perror("IOSSIOSPEED");
-            printf("warning: your baud rate is likely set incorrectly\n");
+            printf("warning: your baud rate is likely set incorrectly (macOS)\n");
         }
     }
 #endif
