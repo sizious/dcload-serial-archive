@@ -14,28 +14,35 @@ Installation
 
 1. PC - run make install (installs dc-tool)
 2. DC
-   a. `cd make-cd`, edit Makefile, insert blank cd-r, run `make`. If
-   1st_read.bin hasn't been built yet, this Makefile will build it
+   * Directly burn to disc: 
+      a. `cd make-cd` 
+      b. edit Makefile
+      c. insert blank cd-r
+      d. run `make` 
+         If 1st_read.bin hasn't been built yet, this Makefile will build it
  or 
-   b. take target-src/1st_read/1st_read.bin and stuff it on a cd yourself
-      (please use the IP.BIN from the make-cd directory if you are going
+   * Create a CDI image to burn later (requires mkisofs and cdi4dc tools):
+      a. `make -C ./host-src/misc` (build the lzo binary)
+      b. `make -C ./target-src` (build the 1st_read.bin)
+      c. `mkisofs -C 0,11702 -V dcload-serial -G ./make-cd/IP.BIN -joliet -rock -l -o temp.iso ./target-src/1st_read/1st_read.bin`
+      d. `cdi4dc temp.iso dcload-serial.cdi`
 
 Testing
 
 1. `cd example-src`
-2. `dc-tool -x console-test` (tests some PC I/O)
-3. `dc-tool -x exception-test` (generates an exception)
+2. `dc-tool-ser -x console-test` (tests some PC I/O)
+3. `dc-tool-ser -x exception-test` (generates an exception)
 
 KOS GDB-over-dcload
 
 To run a GNU debugger session over the dcload connection:
 
 1. Build/obtain an sh-elf targetted GNU debugger
-2. Put a 'gdb_init()' call somewhere in the startup area of your
+2. Put a `gdb_init()` call somewhere in the startup area of your
    KOS-based program
-3. Build your program with the '-g' GCC switch to include debugging info
-4. Launch your program using 'dc-tool -g -x <prog.elf>'
-5. Launch sh-elf-gdb and connect to the dc-tool using 'target remote :2159'
+3. Build your program with the `-g` GCC switch to include debugging info
+4. Launch your program using `dc-tool-ser -g -x <prog.elf>`
+5. Launch sh-elf-gdb and connect to the dc-tool using `target remote :2159`
 6. Squash bugs 
 
 Notes
@@ -45,12 +52,15 @@ Notes
     http://sf.net/projects/cadcdev/
 * Now compiles with gcc-3.4.1, Binutils-2.15, newlib-1.12.0
 * Tested systems: Debian GNU/Linux 2.2; Gentoo/Linux 2.6.7; Cygwin;
-  Mac OSX 10.3.5 (Panther)
-* 1.56M and 500K baud now supported with the FTDI USB-Serial driver.
-  note: currently works with FT232BM USB-Serial UART running at 6.144Mhz.
+  Mac OSX 10.3.5 (Panther); macOS 10.15.2 (Catalina)
+* 1.56M and 500K baud now supported with the FTDI USB-Serial driver, 
+  including the driver built into macOS 10.12 and above.
+  Note: Works with the cheap and commonly available FT232RL USB-Serial boards
+  as well as the, now outdated, FT232BM USB-Serial chip running at 6.144Mhz.
   e.g.:
-    linux:  dc-tool -t /dev/usb/tts/0 -b 1500000 -x <sh-executable>
-    Cygwin: dc-tool -t COM4 -b 500000 -x <sh-executable>
+    linux:  `dc-tool-ser -t /dev/usb/tts/0 -b 1500000 -x <sh-executable>`
+    cygwin: `dc-tool-ser -t COM4 -b 500000 -x <sh-executable>`
+    macOS:  `dc-tool-ser -t /dev/cu.usbserial-A50285BI -b 1500000 -x <sh-executable>`
 * As of 1.0.4, little-endian byte order is enforced in the host so dc-tool
   should now run on big-endian systems like a Mac.
 * As of 1.0.4, Changed cdrecord option -xa1 to -xa: i've made one too many
@@ -63,7 +73,24 @@ Notes
   andrewk@napalm-x.com, especially if it works better than the default 115200.
 * Patches and improvements are welcome.
 
-Mac OSX Notes
+Modern MacOS Notes
+
+* This was tested on Catalina 10.15.2 only, however it should work on pretty
+  much any version of macOS. 
+* Of course some sort of USB serial adapter must be used. The standard 
+  FT232RL USB-Serial boards from China that are sold pretty much everywhere
+  work great and are super cheap.
+* Modern macOS supports the same speeds as the other platforms, currently 
+  up to 1.56M baud (-b 1500000). This was tested using Catalina and an FT232RL.
+* Compilation on macOS requires libelf, which can be easily installed using
+  the Homebrew package manager (https://brew.sh): `brew install libelf`
+* The static compilation option cannot be used on macOS due to the way GCC
+  works on macOS. However, when building the standard dynamically linked build,
+  only libSystem is linked (confirmed with `otool -L`) which is available on
+  all macOS systems, so the binary should still be just as portable.
+
+
+Legacy Mac OSX Notes (Outdated)
 
 * This was tested on Panther 10.3.5 only. It may or may not work on any other
   version of OSX. YMMV.
@@ -90,4 +117,6 @@ Credits
 * Minor initialization fix in dcload for gcc-3.4.x. Serial protocol endian
   fixes - Paul Boese a.k.a. Axlen
 * Fixes for Mac OSX (and testing) by Dan Potter
-* Fixes for libbfd segfaults by Atani  
+* Fixes for libbfd segfaults by Atani 
+* Tons of improvements and fixes by SiZiOUS (https://sizious.com)
+* Modern macOS testing by Ben Baron a.k.a. einsteinx2
