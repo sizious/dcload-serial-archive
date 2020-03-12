@@ -44,7 +44,7 @@ Adapter or LAN Adapter, you have to use `dcload-ip`.
 
 ### dc-tool (client part)
 
-Run `make install`: this will install `dc-tool` on your computer (default in
+Run `make install`: this will install `dc-tool-ser` on your computer (default in
 `/opt/toolchains/dc/bin`).
 
 ### dcload (server part)
@@ -53,19 +53,19 @@ For the Dreamcast part, you have two options.
    
 * Directly burn to a disc by using `cdrecord`:
 
-    a. Navigate to `make-cd`.
-    b. Edit the `Makefile`.
-    c. Insert blank CD-R.
-    d. Run `make`. If the `1ST_READ.BIN` file hasn't been built yet, this 
-       `Makefile` will build it.
+  1. Navigate to `make-cd`.
+  2. Edit the `Makefile`.
+  3. Insert blank CD-R.
+  4. Run `make`. If the `1ST_READ.BIN` file hasn't been built yet, this 
+     `Makefile` will build it.
  
 * Create a **Padus DiscJuggler** (`CDI`) image to burn later (requires 
   the `mkisofs` and `cdi4dc` tools):
 
-    a. `make -C ./host-src/misc` (build the miniLZO binary)
-    b. `make -C ./target-src` (build the `1ST_READ.BIN`)
-    c. `mkisofs -C 0,11702 -V dcload-serial -G ./make-cd/IP.BIN -joliet -rock -l -o temp.iso ./target-src/1st_read/1st_read.bin`
-    d. `cdi4dc temp.iso dcload-serial.cdi`
+  1. `make -C ./host-src/misc` (build the miniLZO binary)
+  2. `make -C ./target-src` (build the `1ST_READ.BIN`)
+  3. `mkisofs -C 0,11702 -V dcload-serial -G ./make-cd/IP.BIN -joliet -rock -l -o temp.iso ./target-src/1st_read/1st_read.bin`
+  4. `cdi4dc temp.iso dcload-serial.cdi`
 
 ## Testing
 
@@ -113,7 +113,7 @@ To run a GNU debugger session over the **dcload** connection:
   better in some rare cases. Use this only if the regular `115200` is unstable.
 * Patches and improvements are welcome.
 
-## Modern MacOS Notes
+## Modern macOS Notes
 
 * This was tested on **Catalina 10.15.2** only, however it should work on pretty
   much any version of macOS. 
