@@ -3,7 +3,7 @@
 **dcload** is a **Sega Dreamcast** (DC) serial loader written originally by 
 [Andrew Kieschnick](http://napalm-x.thegypsy.com/andrewk/dc/), a.k.a.
 **ADK/Napalm**. This program is part of 
-[KallistiOS](http://gamedev.allusion.net/softprj/kos/), a.k.a. KOS.
+[KallistiOS](http://gamedev.allusion.net/softprj/kos/) (KOS).
 
 **dcload** is a set of programs made to send and receive data from your Sega
 Dreamcast system. The classic use of this tool is to send programs to the
@@ -11,10 +11,11 @@ Dreamcast in order to run and debug them. To be used, you must have a way to
 connect your Dreamcast console to your computer, it can be one of the following:
 
 * A **Coders Cable** (a serial cable, the historical way to do that). It can be
-  a cable with the classical `RS-232`/`DE-9` connector or with the FT232RL USB-Serial.
+  a cable with the classical `RS-232`/`DE-9` connector or with the 
+  `FT232RL USB-Serial` module.
 * A **Broadband Adapter**, ref. `HIT-400`, often shortened as **BBA**, a 
-  `10/100Mbits` network Ethernet card.
-* A **LAN Adapter**, ref. `HIT-300`, a `10Mbits` network Ethernet card.
+  `10/100Mbits` Ethernet network card.
+* A **LAN Adapter**, ref. `HIT-300`, a `10Mbits` Ethernet network card.
 
 If you have a Coders Cable, you have to use `dcload-serial`. For the Broadband
 Adapter or LAN Adapter, you have to use `dcload-ip`.
@@ -26,38 +27,45 @@ Adapter or LAN Adapter, you have to use `dcload-ip`.
 
 ## Features
 
-* Load `elf`, `srec` and `bin` (binary transfers are compressed)
-* PC I/O (read, write from/to the PC)
-* Exception handler
-* Debug Dreamcast programs remotely by using the **GDB-over-dcload** feature
+* Load `elf`, `srec` and `bin` (binary transfers are compressed).
+* PC I/O (read, write from/to the PC).
+* Exception handler.
+* Debug Dreamcast programs remotely by using the **GDB-over-dcload** feature.
 
 ## Building
 
 1. You should have a working 
-   [KallistiOS](http://gamedev.allusion.net/softprj/kos/) environment and of
-   course the `sh-elf` toolchain installed (if you have installed KOS, you 
+   [KallistiOS](http://gamedev.allusion.net/softprj/kos/) (KOS) environment and
+   of course the `sh-elf` toolchain installed (if you have installed KOS, you 
    already have everything ready).
 2. Edit the `Makefile.cfg` file for your system and then run `make`.
 
 ## Installation
 
-1. PC - run `make install`: installs `dc-tool`.
-2. DC - `dcload`. You have two options.
+### dc-tool (client part)
+
+Run `make install`: this will install `dc-tool` on your computer (default in
+`/opt/toolchains/dc/bin`).
+
+### dcload (server part)
+
+For the Dreamcast part, you have two options.
    
-* Directly burn to disc by using `cdrecord`:
+* Directly burn to a disc by using `cdrecord`:
 
-  a. Navigate to `make-cd`
-  b. Edit the `Makefile`
-  c. Insert blank CD-R
-  d. Run `make`. If `1ST_READ.BIN` hasn't been built yet, this `Makefile` will 
-     build it.
+    a. Navigate to `make-cd`.
+    b. Edit the `Makefile`.
+    c. Insert blank CD-R.
+    d. Run `make`. If the `1ST_READ.BIN` file hasn't been built yet, this 
+       `Makefile` will build it.
  
-* Create a CDI image to burn later (requires `mkisofs` and `cdi4dc` tools):
+* Create a **Padus DiscJuggler** (`CDI`) image to burn later (requires 
+  the `mkisofs` and `cdi4dc` tools):
 
-  a. `make -C ./host-src/misc` (build the lzo binary)
-  b. `make -C ./target-src` (build the 1ST_READ.BIN)
-  c. `mkisofs -C 0,11702 -V dcload-serial -G ./make-cd/IP.BIN -joliet -rock -l -o temp.iso ./target-src/1st_read/1st_read.bin`
-  d. `cdi4dc temp.iso dcload-serial.cdi`
+    a. `make -C ./host-src/misc` (build the miniLZO binary)
+    b. `make -C ./target-src` (build the `1ST_READ.BIN`)
+    c. `mkisofs -C 0,11702 -V dcload-serial -G ./make-cd/IP.BIN -joliet -rock -l -o temp.iso ./target-src/1st_read/1st_read.bin`
+    d. `cdi4dc temp.iso dcload-serial.cdi`
 
 ## Testing
 
@@ -68,15 +76,18 @@ Everything is located in the `example-src` directory.
 
 ## KOS GDB-over-dcload
 
-To run a GNU debugger session over the dcload connection:
+You have the possibility to use **dcload** to debug remotely Dreamcast binaries.
+To run a GNU debugger session over the **dcload** connection:
 
-1. Build/obtain an `sh-elf` targetted GNU debugger
+1. Build/obtain an `sh-elf` targetted GNU debugger (can be made with `dc-chain`
+   utility from [KallistiOS](http://gamedev.allusion.net/softprj/kos/)).
 2. Put a `gdb_init()` call somewhere in the startup area of your
-   KOS-based program (e.g. it's a good idea to put this call in your `main()`)
-3. Build your program with the `-g` GCC switch to include debugging info
-4. Launch your program using `dc-tool-ser -g -x <prog.elf>`
-5. Launch `sh-elf-gdb` and connect to the `dc-tool` using `target remote :2159`
-6. Squash bugs
+   KOS-based program (e.g. it's a good idea to put this call in your `main()`),
+   then add the `#include <arch/gdb.h>` statement in that file.
+3. Build your program with the `-g` GCC switch to include debugging info.
+4. Launch your program using `dc-tool-ser -g -x <sh-executable>`.
+5. Launch `sh-elf-gdb` and connect to the `dc-tool` using `target remote :2159`.
+6. Squash bugs.
 
 ## Notes
 
@@ -85,18 +96,18 @@ To run a GNU debugger session over the dcload connection:
   for help with these tools.
 * Tested systems: Debian GNU/Linux 2.2; Gentoo/Linux 2.6.7; Cygwin;
   Mac OSX 10.3.5 (Panther); macOS 10.15.2 (Catalina), MinGW/MSYS, 
-  [DreamSDK](https://www.dreamsdk.org)
-* `1.56M` and `500K` baud now supported with the FTDI USB-Serial driver, 
+  [DreamSDK](https://www.dreamsdk.org), MinGW-w64/MSYS2.
+* `1.56M` and `500K` baud now supported with the **FTDI USB-Serial** driver, 
   including the driver built into macOS 10.12 and above.
-  **Note:** Works with the cheap and commonly available FT232RL USB-Serial
-  boards as well as the (outdated) FT232BM USB-Serial chip running at `6.144Mhz`.
-  e.g.:
+  **Note:** Works with the cheap and commonly available **FT232RL USB-Serial**
+  boards as well as the (outdated) **FT232BM USB-Serial** chip running at
+  `6.144Mhz`, e.g.:
     - Linux:   `dc-tool-ser -t /dev/usb/tts/0 -b 1500000 -x <sh-executable>`
     - Windows: `dc-tool-ser -t COM4 -b 500000 -x <sh-executable>`
     - macOS:   `dc-tool-ser -t /dev/cu.usbserial-A50285BI -b 1500000 -x <sh-executable>`
 * As of `1.0.4`, little-endian byte order is enforced in the host so dc-tool
   now runs on big-endian systems like a Mac.
-* As of 1.0.3, serial speed is changed at runtime rather than compile time. 
+* As of `1.0.3`, serial speed is changed at runtime rather than compile time. 
 * `115200` works fine in most cases but `57600` baud is the standard baud.
   There is an `-e` option that will enable an alternate `115200` which may work
   better in some rare cases. Use this only if the regular `115200` is unstable.
@@ -125,12 +136,12 @@ To run a GNU debugger session over the dcload connection:
   [Markus Oberhumer](http://www.oberhumer.com/)
 * There are some various files from `newlib-1.8.2` here and `video.s` was
   written by [Marcus Comstedt](https://mc.pp.se/dc/).
-* win32 porting and implementation of `-t` by **Florian 'Proff' Schulze**
-* bugfix and implementation of `-b` by **The Gypsy**
-* fixes for cygwin by **Florian 'Proff' Schulze**
+* Win32 porting and implementation of `-t` by **Florian 'Proff' Schulze**.
+* Bugfix and implementation of `-b` by **The Gypsy**.
+* Fixes for Cygwin by **Florian 'Proff' Schulze**.
 * Minor initialization fix in dcload for `gcc-3.4.x` and Serial protocol endian
-  fixes by [Paul Boese a.k.a. Axlen](http://archives.dcemulation.org/www.axlen.com/www.geocities.com/pboese_sbcglobal.net/index.html)
-* Fixes for Mac OSX (and testing) by **Dan Potter**
-* Fixes for `libbfd` segfaults by **Atani**
-* Tons of improvements and fixes by [SiZiOUS](https://sizious.com)
-* Modern macOS testing by **Ben Baron a.k.a. einsteinx2**
+  fixes by [Paul Boese a.k.a. Axlen](http://archives.dcemulation.org/www.axlen.com/www.geocities.com/pboese_sbcglobal.net/index.html).
+* Fixes for Mac OSX (and testing) by **Dan Potter**.
+* Fixes for `libbfd` segfaults by **Atani**.
+* Tons of improvements and fixes by [SiZiOUS](https://sizious.com).
+* Modern macOS testing by [Ben Baron a.k.a. einsteinx2](https://twitter.com/einsteinx2).
