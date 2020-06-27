@@ -22,7 +22,7 @@ burn-audio: audio.raw
 	touch burn-audio
 
 1st_read.bin: $(1ST_READ)
-	$(SCRAMBLE) $(1ST_READ) 1st_read.bin
+	cp $(1ST_READ) 1st_read.bin
 
 data.raw: tmp.iso IP.BIN
 	( cat IP.BIN ; dd if=tmp.iso bs=2048 skip=16 ) > data.raw
