@@ -318,11 +318,7 @@ char serial_getc()
     retval = serial_read(&tmp, 1);
     if (retval == -1) {
         printf("serial_getc: read error!\n");
-#ifndef __MINGW32__		
-		tmp = (char)NULL;
-#else
 		tmp = 0x00;
-#endif
     }
     return tmp;
 }
